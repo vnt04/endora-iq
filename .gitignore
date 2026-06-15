@@ -1,0 +1,49 @@
+# Compiled binary (built with `go build -o apilens .` / Makefile `build`)
+/apilens
+/apilens.exe
+apilens
+apilens.exe
+
+# Go build / test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage output
+coverage.out
+coverage.txt
+coverage.html
+*.cover
+
+# Generated command output (artifacts ApiLens writes to the chosen dir)
+/reports/
+/alerts/
+generated-tests.js
+review.md
+failure-analysis.md
+audit-report.md
+audit-report.json
+
+# Generated documentation build output (keep docs/CONTRACT.md, ignore built site)
+/docs/index.html
+/docs/openapi.yaml
+
+# Local config & secrets — never commit API keys
+.env
+.env.*
+apilens.yaml
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Go workspace files
+go.work
+go.work.sum

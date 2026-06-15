@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "Demo User API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "A small but realistic Postman v2.1 collection used to exercise ApiLens offline. It contains a mix of tested and untested endpoints, a bearer-authenticated collection, and request headers carrying secrets so the redaction layer (SRS §20) has something to mask before any AI prompt is built."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com/v1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "List users with pagination. Inherits the collection-level bearer auth."
+          },
+          "response": [
+            {
+              "name": "OK",
+              "code": 200,
+              "status": "OK",
+              "body": "{\"data\":[{\"id\":\"u_1\",\"email\":\"ada@example.com\"}],\"page\":1,\"limit\":20}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('responds within 800ms', function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(800);",
+                  "});",
+                  "pm.test('body has data array', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "path": ["users", ":id"],
+              "variable": [
+                { "key": "id", "value": "u_1" }
+              ]
+            },
+            "description": "Fetch a single user by id."
+          },
+          "response": [
+            {
+              "name": "OK",
+              "code": 200,
+              "status": "OK",
+              "body": "{\"id\":\"u_1\",\"email\":\"ada@example.com\",\"role\":\"admin\"}"
+            },
+            {
+              "name": "Not Found",
+              "code": 404,
+              "status": "Not Found",
+              "body": "{\"error\":\"user not found\"}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('user has email', function () {",
+                  "  pm.expect(pm.response.json()).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk_live_51HxAbc0000SECRETTOKENvalueDEADBEEF"
+              },
+              {
+                "key": "X-Api-Key",
+                "value": "ak_test_9f8e7d6c5b4a3210ffeeddccbbaa9988"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "path": ["users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"grace@example.com\",\n  \"name\": \"Grace Hopper\",\n  \"role\": \"admin\",\n  \"password\": \"hunter2-correct-horse\"\n}"
+            },
+            "description": "Create a new user. Carries an Authorization bearer token and an X-Api-Key header on purpose so ApiLens redaction can be observed."
+          },
+          "response": [
+            {
+              "name": "Created",
+              "code": 201,
+              "status": "Created",
+              "body": "{\"id\":\"u_2\",\"email\":\"grace@example.com\"}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk_live_51HxAbc0000SECRETTOKENvalueDEADBEEF"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "path": ["users", ":id"],
+              "variable": [
+                { "key": "id", "value": "u_2" }
+              ]
+            },
+            "description": "Delete a user. Intentionally has NO test scripts so audit/review can flag it as an untested, high-risk destructive endpoint."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Healthcheck",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "path": ["health"]
+            },
+            "description": "Liveness probe. No authentication."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

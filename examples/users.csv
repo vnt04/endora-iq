@@ -1,0 +1,6 @@
+name,email,role,password
+Ada Lovelace,ada@example.com,admin,hunter2-correct-horse
+Grace Hopper,grace@example.com,member,tr0ub4dor&3
+Alan Turing,alan@example.com,member,enigma-1912
+Katherine Johnson,katherine@example.com,viewer,orbital-mechanics-99
+,invalid-email,member,

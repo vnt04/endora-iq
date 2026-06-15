@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "id": "u_1",
+      "email": "ada@example.com",
+      "name": "Ada Lovelace",
+      "role": "admin",
+      "active": true,
+      "created_at": "2026-01-15T09:30:00Z",
+      "profile": {
+        "title": "Lead Engineer",
+        "location": "London"
+      },
+      "tags": ["founder", "engineering"]
+    },
+    {
+      "id": "u_2",
+      "email": "grace@example.com",
+      "name": "Grace Hopper",
+      "role": "member",
+      "active": true,
+      "created_at": "2026-02-01T14:05:00Z",
+      "profile": {
+        "title": "Engineer",
+        "location": "New York"
+      },
+      "tags": ["engineering"]
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 2
+}

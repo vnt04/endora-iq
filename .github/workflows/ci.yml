@@ -1,0 +1,40 @@
+name: CI
+
+# Continuous integration for the ApiLens project itself: build, vet, and test the
+# Go module on every push and pull request. (This is distinct from the GitHub
+# Actions workflow that `apilens monitor init` generates for end users.)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build • vet • test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          check-latest: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test (race + coverage)
+        run: go test ./... -race -cover -count=1
