@@ -89,6 +89,10 @@ func runNewman(ctx context.Context, rnr runner, args []string) error {
 	full := append(append([]string{}, rnr.pre...), args...)
 
 	cmd := exec.CommandContext(ctx, rnr.bin, full...)
+	// Parallel shards each stream to the shared terminal, so multi-shard output
+	// interleaves by design; the per-shard JSON/HTML reports are the durable,
+	// unambiguous record. Do not "fix" this by buffering — it would hide live
+	// progress for long runs.
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

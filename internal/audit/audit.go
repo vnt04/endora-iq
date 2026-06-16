@@ -82,6 +82,9 @@ func Run(ctx context.Context, cfg config.Config, client *ai.Client, opts Options
 	if err != nil {
 		return fmt.Errorf("audit: parse input %q: %w", opts.InputPath, err)
 	}
+	if collection == nil {
+		collection = &core.Collection{}
+	}
 
 	cov := coverage.Analyze(collection)
 	subs := deriveSubscores(collection, cov)

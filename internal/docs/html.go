@@ -79,12 +79,17 @@ func writeRedocHTML(col *core.Collection, opts Options, htmlPath string) error {
 	}
 
 	data := redocData{
-		Title:       resolveTitle(opts, col),
-		Logo:        strings.TrimSpace(opts.Logo),
+		Title: resolveTitle(opts, col),
+		Logo:  strings.TrimSpace(opts.Logo),
+		// Safe to bypass html/template escaping: color is gated by
+		// sanitizeThemeColor's allow-list regex (reSafeThemeColor).
 		HeaderColor: template.CSS(color),
 		ScriptURL:   redocCDN,
 		SpecURL:     "./" + defaultOpenAPIFile,
-		Options:     template.JS(optJSON),
+		// Safe to bypass escaping: optJSON is json.Marshal output, which already
+		// escapes <, >, and & for HTML embedding. Do not cast user-supplied
+		// strings this way without equivalent validation.
+		Options: template.JS(optJSON),
 	}
 
 	var buf bytes.Buffer

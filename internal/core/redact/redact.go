@@ -180,6 +180,9 @@ func Collection(c *core.Collection) *core.Collection {
 	}
 	out := *c
 	out.Description = String(c.Description)
+	// BaseURL can embed credentials (e.g. https://host/api?api_key=...); redact it
+	// so callers that emit it — such as the docs OpenAPI server URL — never leak.
+	out.BaseURL = String(c.BaseURL)
 	if c.Endpoints != nil {
 		eps := make([]core.Endpoint, len(c.Endpoints))
 		for i, e := range c.Endpoints {

@@ -267,6 +267,7 @@ func TestCollection(t *testing.T) {
 	in := &core.Collection{
 		Name:        "Demo",
 		Description: "api_key=col-secret-value",
+		BaseURL:     "https://api.example.com/v1?api_key=base-secret-value",
 		Endpoints: []core.Endpoint{
 			{Method: "GET", Path: "/a", Headers: []core.Header{{Key: "Api-Key", Value: "k"}}},
 		},
@@ -281,6 +282,12 @@ func TestCollection(t *testing.T) {
 	}
 	if strings.Contains(out.Description, "col-secret-value") {
 		t.Errorf("description secret leaked: %q", out.Description)
+	}
+	if strings.Contains(out.BaseURL, "base-secret-value") {
+		t.Errorf("base URL secret leaked: %q", out.BaseURL)
+	}
+	if in.BaseURL != "https://api.example.com/v1?api_key=base-secret-value" {
+		t.Errorf("input base URL mutated: %q", in.BaseURL)
 	}
 	if out.Endpoints[0].Headers[0].Value != Mask {
 		t.Errorf("endpoint header not masked: %q", out.Endpoints[0].Headers[0].Value)

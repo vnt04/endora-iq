@@ -28,7 +28,9 @@ func buildGroupPrompt(g failureGroup, endpoints []core.Endpoint) string {
 	var b strings.Builder
 
 	b.WriteString("A cluster of related API test failures was detected during a Newman test run.\n\n")
-	b.WriteString(fmt.Sprintf("Error type: %s\n", errorNameOrUnknown(g.ErrorName)))
+	// ErrorName is a JS exception class name in practice, but a custom test script
+	// could embed data in it — redact for parity with the other prompt fields.
+	b.WriteString(fmt.Sprintf("Error type: %s\n", redact.String(errorNameOrUnknown(g.ErrorName))))
 	b.WriteString(fmt.Sprintf("Number of failing assertions in this cluster: %d\n\n", g.Count))
 
 	if len(g.Endpoints) > 0 {

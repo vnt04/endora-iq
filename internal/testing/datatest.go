@@ -139,7 +139,11 @@ func runParallel(ctx context.Context, rnr runner, opts Options, outDir, tmpDir s
 	dataFmt := newmanDataFormat(srcFormat)
 	results := make([]shardResult, len(shards))
 
-	var wg sync.WaitGroup
+	// Phase 1 (sequential): prepare every shard's data file and argument slice
+	// up front. Doing all the fallible writeDataFile work before any goroutine
+	// is launched means a failure here returns cleanly with nothing to clean up
+	// — no orphaned goroutines or newman subprocesses left running.
+	shardArgs := make([][]string, len(shards))
 	for i := range shards {
 		dataFile, err := writeDataFile(tmpDir, shards[i], dataFmt)
 		if err != nil {
@@ -148,15 +152,19 @@ func runParallel(ctx context.Context, rnr runner, opts Options, outDir, tmpDir s
 		jsonReport, htmlReport := reportPaths(outDir, i+1)
 		results[i].shard = i + 1
 		results[i].jsonReport = jsonReport
-		args := buildNewmanArgs(opts, dataFile, jsonReport, htmlReport)
+		shardArgs[i] = buildNewmanArgs(opts, dataFile, jsonReport, htmlReport)
+	}
 
+	// Phase 2 (parallel): all data files exist, so it is safe to fan out. Each
+	// goroutine writes only its own results[idx], so distinct indices require no
+	// additional synchronization.
+	var wg sync.WaitGroup
+	for i := range shards {
 		wg.Add(1)
-		// Each goroutine writes only its own results[idx], so distinct indices
-		// require no additional synchronization.
 		go func(idx int, a []string) {
 			defer wg.Done()
 			results[idx].runErr = runNewman(ctx, rnr, a)
-		}(i, args)
+		}(i, shardArgs[i])
 	}
 	wg.Wait()
 
