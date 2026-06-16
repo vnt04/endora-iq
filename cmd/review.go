@@ -15,7 +15,7 @@ var reviewCmd = &cobra.Command{
 		"actionable recommendations: weak/untested endpoints and missing scenarios.",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := newClient()
+		client, err := optionalClient()
 		if err != nil {
 			return err
 		}

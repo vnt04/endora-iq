@@ -2,12 +2,15 @@ package datatest
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/apilens/apilens/internal/core"
 	"github.com/apilens/apilens/internal/core/config"
 	"github.com/apilens/apilens/internal/parser"
 )
@@ -442,5 +445,119 @@ func TestRunValidationErrors(t *testing.T) {
 				t.Fatalf("error %q does not contain %q", err.Error(), tt.wantSub)
 			}
 		})
+	}
+}
+
+// --- aggregate + printSummary (newman-free; report fixtures are JSON files) --
+
+// writeNewmanReport writes a minimal Newman JSON reporter file using the
+// run-level stats path and returns its path. It is enough for parser.ParseNewman
+// to derive Total/Failed/Passed without per-assertion detail.
+func writeNewmanReport(t *testing.T, dir, name string, total, failed int) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	content := fmt.Sprintf(
+		`{"collection":{"info":{"name":"Demo"}},"run":{"stats":{"assertions":{"total":%d,"failed":%d}}}}`,
+		total, failed)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write newman report: %v", err)
+	}
+	return path
+}
+
+// captureStdout redirects os.Stdout while fn runs and returns what it printed.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+
+	fn()
+	_ = w.Close()
+	data, _ := io.ReadAll(r)
+	return string(data)
+}
+
+func TestAggregateParsesReportsAndSumsFailures(t *testing.T) {
+	dir := t.TempDir()
+	results := []shardResult{
+		{shard: 1, jsonReport: writeNewmanReport(t, dir, "report-1.json", 4, 1)},
+		{shard: 2, jsonReport: writeNewmanReport(t, dir, "report-2.json", 3, 0)},
+	}
+
+	fatal, totalFailed := aggregate(results)
+	if fatal != nil {
+		t.Fatalf("unexpected fatal: %v", fatal)
+	}
+	if totalFailed != 1 {
+		t.Fatalf("totalFailed = %d; want 1", totalFailed)
+	}
+	if results[0].report == nil || results[1].report == nil {
+		t.Fatalf("aggregate did not populate parsed reports")
+	}
+	if results[0].report.Failed != 1 || results[1].report.Failed != 0 {
+		t.Fatalf("per-shard failed counts wrong: %d, %d",
+			results[0].report.Failed, results[1].report.Failed)
+	}
+}
+
+func TestAggregateFatalOnUnparseableReport(t *testing.T) {
+	dir := t.TempDir()
+
+	// A missing report combined with a run error is fatal and blames the run.
+	withRunErr := []shardResult{
+		{shard: 1, jsonReport: writeNewmanReport(t, dir, "report-1.json", 2, 0)},
+		{shard: 2, jsonReport: filepath.Join(dir, "missing.json"), runErr: fmt.Errorf("exit status 1")},
+	}
+	fatal, _ := aggregate(withRunErr)
+	if fatal == nil || !strings.Contains(fatal.Error(), "no parseable report") {
+		t.Fatalf("expected fatal mentioning no parseable report, got %v", fatal)
+	}
+
+	// A missing report with no run error surfaces as a parse error instead.
+	noRunErr := []shardResult{
+		{shard: 1, jsonReport: filepath.Join(dir, "missing.json")},
+	}
+	fatal2, _ := aggregate(noRunErr)
+	if fatal2 == nil || !strings.Contains(fatal2.Error(), "parse report") {
+		t.Fatalf("expected parse-report fatal, got %v", fatal2)
+	}
+}
+
+func TestPrintSummaryMultiShard(t *testing.T) {
+	results := []shardResult{
+		{shard: 1, report: &core.NewmanReport{CollectionName: "Demo User API", Total: 4, Passed: 3, Failed: 1}},
+		{shard: 2, report: &core.NewmanReport{CollectionName: "Demo User API", Total: 2, Passed: 2, Failed: 0}},
+	}
+	out := captureStdout(t, func() { printSummary(results, "reports") })
+
+	for _, want := range []string{"Demo User API", "Shard 1", "Shard 2", "6 assertions", "reports"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("summary missing %q; got:\n%s", want, out)
+		}
+	}
+}
+
+func TestPrintSummarySingleRunOmitsShardLines(t *testing.T) {
+	results := []shardResult{
+		{report: &core.NewmanReport{CollectionName: "Solo", Total: 1, Passed: 1, Failed: 0}},
+	}
+	out := captureStdout(t, func() { printSummary(results, "reports") })
+	if strings.Contains(out, "Shard ") {
+		t.Fatalf("single-run summary must not print shard lines:\n%s", out)
+	}
+	if !strings.Contains(out, "Solo") {
+		t.Fatalf("summary missing collection name:\n%s", out)
+	}
+}
+
+func TestPrintSummaryUnknownCollection(t *testing.T) {
+	out := captureStdout(t, func() { printSummary([]shardResult{{report: nil}}, "reports") })
+	if !strings.Contains(out, "(unknown collection)") {
+		t.Fatalf("expected unknown-collection fallback:\n%s", out)
 	}
 }

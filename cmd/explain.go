@@ -18,7 +18,7 @@ var explainCmd = &cobra.Command{
 		"with confidence, and recommend fixes. Optionally correlate with a collection.",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := newClient()
+		client, err := optionalClient()
 		if err != nil {
 			return err
 		}

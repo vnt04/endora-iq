@@ -20,13 +20,13 @@ func writeTemp(t *testing.T, name, content string) string {
 
 func TestDetectFormat(t *testing.T) {
 	tests := map[string]string{
-		"data.csv":   "csv",
-		"DATA.CSV":   "csv",
-		"data.json":  "json",
-		"data.jsonl": "jsonl",
+		"data.csv":    "csv",
+		"DATA.CSV":    "csv",
+		"data.json":   "json",
+		"data.jsonl":  "jsonl",
 		"data.ndjson": "jsonl",
-		"data.txt":   "txt",
-		"noext":      "",
+		"data.txt":    "txt",
+		"noext":       "",
 	}
 	for path, want := range tests {
 		if got := DetectFormat(path); got != want {

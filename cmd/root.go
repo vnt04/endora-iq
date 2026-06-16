@@ -85,9 +85,9 @@ func Execute() {
 	}
 }
 
-// newClient builds the AI client for commands that need an LLM. It checks for
-// the provider API key first so the user gets actionable guidance instead of a
-// transport error.
+// newClient builds the AI client for commands that strictly require an LLM
+// (e.g. generate). It checks for the provider API key first so the user gets
+// actionable guidance instead of a transport error.
 func newClient() (*ai.Client, error) {
 	if err := cfg.RequireAPIKey(); err != nil {
 		return nil, err
@@ -97,6 +97,18 @@ func newClient() (*ai.Client, error) {
 		return nil, err
 	}
 	return client, nil
+}
+
+// optionalClient builds an AI client when an API key is configured, otherwise
+// it returns (nil, nil). Commands that degrade gracefully without AI (audit,
+// review, explain) use this so their deterministic analysis still runs offline;
+// the feature layer treats a nil client as "skip the AI narrative".
+func optionalClient() (*ai.Client, error) {
+	if strings.TrimSpace(cfg.APIKey) == "" {
+		logging.L().Warn().Msg("no API key configured; producing deterministic output only (AI narrative skipped)")
+		return nil, nil
+	}
+	return ai.New(cfg)
 }
 
 func init() {

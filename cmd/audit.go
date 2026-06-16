@@ -18,7 +18,7 @@ var auditCmd = &cobra.Command{
 		"quality scores plus an AI narrative of gaps and risk.",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := newClient()
+		client, err := optionalClient()
 		if err != nil {
 			return err
 		}
